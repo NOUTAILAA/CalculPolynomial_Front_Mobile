@@ -26,14 +26,20 @@ class PolynomialSolverScreen extends StatefulWidget {
 }
 
 class _PolynomialSolverScreenState extends State<PolynomialSolverScreen> {
-  final TextEditingController _controller = TextEditingController();
+  final TextEditingController _expressionController = TextEditingController();
+  final TextEditingController _variableController = TextEditingController(text: 'x'); // Valeur par défaut 'x'
+
   String simplifiedExpression = '';
   String factoredExpression = '';
   List<String> roots = [];
   String errorMessage = '';
 
   void _solvePolynomial() async {
-    final expression = _controller.text.trim();
+    final expression = _expressionController.text.trim();
+    final variable = _variableController.text.trim().isEmpty
+        ? 'x' // Utiliser 'x' si aucune variable n'est saisie
+        : _variableController.text.trim();
+
     if (expression.isEmpty) {
       setState(() {
         errorMessage = 'Veuillez entrer une expression.';
@@ -46,7 +52,7 @@ class _PolynomialSolverScreenState extends State<PolynomialSolverScreen> {
       final response = await http.post(
         url,
         headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'expression': expression}),
+        body: jsonEncode({'expression': expression, 'variable': variable}),
       );
 
       if (response.statusCode == 200) {
@@ -71,7 +77,8 @@ class _PolynomialSolverScreenState extends State<PolynomialSolverScreen> {
 
   void _clearFields() {
     setState(() {
-      _controller.clear();
+      _expressionController.clear();
+      _variableController.text = 'x'; // Réinitialise à 'x'
       simplifiedExpression = '';
       factoredExpression = '';
       roots = [];
@@ -92,7 +99,17 @@ class _PolynomialSolverScreenState extends State<PolynomialSolverScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             TextField(
-              controller: _controller,
+              controller: _variableController,
+              decoration: InputDecoration(
+                labelText: 'Variable (par défaut : x)',
+                border: OutlineInputBorder(),
+                filled: true,
+                fillColor: Colors.grey[200],
+              ),
+            ),
+            SizedBox(height: 20),
+            TextField(
+              controller: _expressionController,
               decoration: InputDecoration(
                 labelText: 'Expression polynomiale',
                 border: OutlineInputBorder(),
