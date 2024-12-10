@@ -1,56 +1,69 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-import 'polynomial_solver_screen.dart'; // Page de destination après une connexion réussie
-import 'package:flutter/material.dart';
-import 'reset_password_page.dart'; // Import de la page de réinitialisation
-import 'signup_page.dart'; // Import de la page d'inscription
+import './polynomial_solver_screen.dart';
+import './signup_page.dart';
+import './reset_password_page.dart';
 
-class AuthScreen extends StatefulWidget {
+class LoginPage extends StatefulWidget {
   @override
-  _AuthScreenState createState() => _AuthScreenState();
+  _LoginPageState createState() => _LoginPageState();
 }
 
-class _AuthScreenState extends State<AuthScreen> {
-  final TextEditingController _usernameController = TextEditingController();
+class _LoginPageState extends State<LoginPage> {
+  final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
-  String message = '';
 
-  // Fonction de connexion
-  void _login() async {
-    final username = _usernameController.text;
-    final password = _passwordController.text;
+  bool _isLoading = false;
+  String? _errorMessage;
 
-    if (username.isEmpty || password.isEmpty) {
+  Future<void> login() async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    final String email = _emailController.text.trim();
+    final String password = _passwordController.text.trim();
+
+    if (email.isEmpty || password.isEmpty) {
       setState(() {
-        message = "Veuillez entrer un nom d'utilisateur et un mot de passe.";
+        _isLoading = false;
+        _errorMessage = "Veuillez remplir tous les champs.";
       });
       return;
     }
 
-    final url = Uri.parse('http://192.168.1.107:8082/api/calculators/login');
-    final response = await http.post(
-      url,
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({
-        'username': username,
-        'password': password,
-      }),
-    );
-
-    if (response.statusCode == 200) {
-      setState(() {
-        message = "Connexion réussie !";
-      });
-
-      // Naviguer vers la page d'accueil ou la page de destination après la connexion
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => PolynomialSolverScreen()),
+    try {
+      final response = await http.post(
+        Uri.parse("http://192.168.1.107:8082/api/calculators/login"),
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode({"email": email, "password": password}),
       );
-    } else {
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final token = data['token'];
+
+        // Naviguer vers PolynomialSolverScreen
+        print("Connexion réussie : $token");
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => PolynomialSolverScreen()),
+        );
+      } else {
+        setState(() {
+          _errorMessage =
+              jsonDecode(response.body)['message'] ?? "Erreur inconnue.";
+        });
+      }
+    } catch (e) {
       setState(() {
-        message = "Nom d'utilisateur ou mot de passe incorrect.";
+        _errorMessage = "Erreur de connexion au serveur.";
+      });
+    } finally {
+      setState(() {
+        _isLoading = false;
       });
     }
   }
@@ -65,26 +78,36 @@ class _AuthScreenState extends State<AuthScreen> {
         padding: const EdgeInsets.all(16.0),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             TextField(
-              controller: _usernameController,
+              controller: _emailController,
               decoration: InputDecoration(
-                labelText: 'Nom d\'utilisateur',
+                labelText: "Email",
+                border: OutlineInputBorder(),
               ),
+              keyboardType: TextInputType.emailAddress,
             ),
-            SizedBox(height: 10),
+            SizedBox(height: 16),
             TextField(
               controller: _passwordController,
-              obscureText: true,
               decoration: InputDecoration(
-                labelText: 'Mot de passe',
+                labelText: "Mot de passe",
+                border: OutlineInputBorder(),
               ),
+              obscureText: true,
             ),
-            SizedBox(height: 20),
+            SizedBox(height: 16),
+            if (_errorMessage != null)
+              Text(
+                _errorMessage!,
+                style: TextStyle(color: Colors.red),
+              ),
+            SizedBox(height: 16),
             ElevatedButton(
-              onPressed: _login,
-              child: Text("Se connecter"),
+              onPressed: _isLoading ? null : login,
+              child: _isLoading
+                  ? CircularProgressIndicator(color: Colors.white)
+                  : Text("Se connecter"),
             ),
             SizedBox(height: 10),
             TextButton(
@@ -108,14 +131,40 @@ class _AuthScreenState extends State<AuthScreen> {
               },
               child: Text("S'inscrire"),
             ),
-            if (message.isNotEmpty) ...[
-              SizedBox(height: 20),
-              Text(
-                message,
-                style: TextStyle(color: Colors.red),
-                textAlign: TextAlign.center,
-              ),
-            ]
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class DashboardPage extends StatelessWidget {
+  final String token;
+
+  const DashboardPage({Key? key, required this.token}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text("Tableau de bord"),
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              "Bienvenue sur votre tableau de bord !",
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              textAlign: TextAlign.center,
+            ),
+            SizedBox(height: 16),
+            Text(
+              "Votre token : $token",
+              style: TextStyle(fontSize: 14),
+              textAlign: TextAlign.center,
+            ),
           ],
         ),
       ),

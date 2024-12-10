@@ -16,7 +16,7 @@ class PolynomialSolverApp extends StatelessWidget {
         ),
         fontFamily: 'Roboto',
       ),
-      home: AuthScreen(), // Changez ici pour AuthScreen
+      home: LoginPage(), // Changez ici pour AuthScreen
     );
   }
 }

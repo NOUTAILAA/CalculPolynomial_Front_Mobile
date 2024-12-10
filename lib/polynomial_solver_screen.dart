@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'auth_screen.dart';
+
 
 class PolynomialSolverScreen extends StatefulWidget {
   @override
@@ -74,6 +76,18 @@ class _PolynomialSolverScreenState extends State<PolynomialSolverScreen> {
       appBar: AppBar(
         title: Text('Polynomial Solver'),
         backgroundColor: Colors.blueGrey,
+        actions: [
+          IconButton(
+            icon: Icon(Icons.logout),
+            onPressed: () {
+              // Naviguer vers la page de connexion
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (context) => LoginPage()),
+              );
+            },
+          ),
+        ],
       ),
       body: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 16.0),
