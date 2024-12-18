@@ -1,22 +1,16 @@
 import 'package:flutter/material.dart';
-import 'auth_screen.dart';
+import 'Connexion/login_page.dart';
 
 void main() {
-  runApp(PolynomialSolverApp());
+  runApp(MyApp());
 }
 
-class PolynomialSolverApp extends StatelessWidget {
+class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Polynomial Solver',
-      theme: ThemeData(
-        colorScheme: ColorScheme.light(
-          primary: Colors.blueGrey,
-        ),
-        fontFamily: 'Roboto',
-      ),
-      home: LoginPage(), // Changez ici pour AuthScreen
+      debugShowCheckedModeBanner: false,
+      home: LoginPage(),
     );
   }
 }
