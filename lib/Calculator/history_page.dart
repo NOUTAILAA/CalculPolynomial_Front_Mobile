@@ -73,6 +73,7 @@ class _HistoryPageState extends State<HistoryPage> {
                       leading: const Icon(Icons.history, color: Colors.deepPurpleAccent),
                       title: Text("Expression : ${item['simplifiedExpression']}"),
                       subtitle: Text("Racines : ${item['roots']}"),
+                      
                     ),
                   );
                 },

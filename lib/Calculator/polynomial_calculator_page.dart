@@ -15,12 +15,24 @@ class _PolynomialCalculatorPageState extends State<PolynomialCalculatorPage> {
   final ApiService apiService = ApiService();
 
   bool isLoading = false;
-  String result = "";
+  String simplifiedExpression = "";
+  String factoredExpression = "";
+  List<String> roots = [];
+  Image? graphImage;
+
+  void _clearResults() {
+    setState(() {
+      simplifiedExpression = "";
+      factoredExpression = "";
+      roots = [];
+      graphImage = null;
+    });
+  }
 
   void _calculate(String method) async {
     setState(() {
       isLoading = true;
-      result = "";
+      _clearResults();
     });
 
     try {
@@ -36,22 +48,47 @@ class _PolynomialCalculatorPageState extends State<PolynomialCalculatorPage> {
         throw Exception("Méthode inconnue.");
       }
 
-      // Traitement des racines complexes
-      List<String> roots = (response['roots'] as List<dynamic>).map<String>((root) {
+      // Formatage des racines
+      List<String> formattedRoots = (response['roots'] as List<dynamic>).map<String>((root) {
         String rootStr = root.toString().replaceAll("*I", "i").replaceAll(" ", "");
         return rootStr;
       }).toList();
 
       setState(() {
-        result = """
-Racines : ${roots.join(", ")}
-Expression simplifiée : ${response['simplifiedExpression']}
-Expression factorisée : ${response['factoredExpression']}
-      """;
+        simplifiedExpression = response['simplifiedExpression'];
+        factoredExpression = response['factoredExpression'];
+        roots = formattedRoots;
       });
     } catch (error) {
       setState(() {
-        result = "Erreur : ${error.toString()}";
+        simplifiedExpression = "Erreur : ${error.toString()}";
+      });
+    } finally {
+      setState(() {
+        isLoading = false;
+      });
+    }
+  }
+
+  void _plotGraph() async {
+    setState(() {
+      isLoading = true;
+      _clearResults();
+    });
+
+    try {
+      final response = await apiService.plotPolynomial(expressionController.text);
+      setState(() {
+        graphImage = Image.memory(
+          response.bodyBytes,
+          fit: BoxFit.contain,
+          width: double.infinity,
+          height: 200,
+        );
+      });
+    } catch (error) {
+      setState(() {
+        simplifiedExpression = "Erreur : ${error.toString()}";
       });
     } finally {
       setState(() {
@@ -73,57 +110,94 @@ Expression factorisée : ${response['factoredExpression']}
         ),
         child: Padding(
           padding: const EdgeInsets.all(16.0),
-          child: Column(
-            children: [
-              Card(
-                elevation: 8,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
-                  child: TextField(
-                    controller: expressionController,
-                    style: TextStyle(fontSize: 18),
-                    decoration: InputDecoration(
-                      labelText: 'Entrez une expression polynomiale',
-                      labelStyle: TextStyle(color: Colors.deepPurpleAccent, fontWeight: FontWeight.bold),
-                      border: InputBorder.none,
-                      icon: Icon(Icons.edit, color: Colors.deepPurpleAccent),
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 20),
-              isLoading
-                  ? const CircularProgressIndicator(
-                      color: Colors.white,
-                    )
-                  : Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                      children: [
-                        _buildStyledButton("Numpy", Colors.pinkAccent, () => _calculate("numpy")),
-                        _buildStyledButton("Sympy", Colors.orangeAccent, () => _calculate("sympy")),
-                        _buildStyledButton("Newton-Raphson", Colors.greenAccent, () => _calculate("newton")),
-                      ],
-                    ),
-              const SizedBox(height: 20),
-              Expanded(
-                child: Card(
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Card(
                   elevation: 8,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.all(12),
-                    child: Text(
-                      result.isEmpty ? "Les résultats apparaîtront ici..." : result,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w500,
-                        color: Colors.black87,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
+                    child: TextField(
+                      controller: expressionController,
+                      style: const TextStyle(fontSize: 18),
+                      decoration: const InputDecoration(
+                        labelText: 'Entrez une expression polynomiale',
+                        labelStyle: TextStyle(color: Colors.deepPurpleAccent, fontWeight: FontWeight.bold),
+                        border: InputBorder.none,
+                        icon: Icon(Icons.edit, color: Colors.deepPurpleAccent),
                       ),
                     ),
                   ),
                 ),
-              ),
-            ],
+                const SizedBox(height: 20),
+                if (isLoading)
+                  const Center(child: CircularProgressIndicator(color: Colors.white))
+                else
+                  Wrap(
+                    spacing: 12,
+                    runSpacing: 12,
+                    children: [
+                      _buildStyledButton("Numpy", Colors.pinkAccent, () => _calculate("numpy")),
+                      _buildStyledButton("Sympy", Colors.orangeAccent, () => _calculate("sympy")),
+                      _buildStyledButton("Newton", Colors.greenAccent, () => _calculate("newton")),
+                      _buildStyledButton("Courbe", Colors.blueAccent, _plotGraph),
+                    ],
+                  ),
+                const SizedBox(height: 20),
+                if (simplifiedExpression.isNotEmpty || factoredExpression.isNotEmpty || roots.isNotEmpty)
+                  Card(
+                    elevation: 8,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    child: Padding(
+                      padding: const EdgeInsets.all(12),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          if (simplifiedExpression.isNotEmpty)
+                            Text(
+                              "Expression simplifiée : $simplifiedExpression",
+                              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: Colors.black87),
+                            ),
+                          const SizedBox(height: 10),
+                          if (factoredExpression.isNotEmpty)
+                            Text(
+                              "Expression factorisée : $factoredExpression",
+                              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: Colors.black87),
+                            ),
+                          const SizedBox(height: 10),
+                          if (roots.isNotEmpty)
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  "Racines :",
+                                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black87),
+                                ),
+                                const SizedBox(height: 8),
+                                ...roots.map((root) => Text(
+                                      "- $root",
+                                      style: const TextStyle(fontSize: 16, color: Colors.black87),
+                                    )),
+                              ],
+                            ),
+                        ],
+                      ),
+                    ),
+                  ),
+                const SizedBox(height: 20),
+                if (graphImage != null)
+                  Card(
+                    elevation: 8,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    child: Padding(
+                      padding: const EdgeInsets.all(8.0),
+                      child: graphImage!,
+                    ),
+                  ),
+              ],
+            ),
           ),
         ),
       ),
@@ -135,8 +209,8 @@ Expression factorisée : ${response['factoredExpression']}
       style: ElevatedButton.styleFrom(
         backgroundColor: color,
         elevation: 6,
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        fixedSize: const Size(120, 48),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
       onPressed: onPressed,
       child: Text(

@@ -38,7 +38,7 @@ class ApiService {
 
 
   Future<List<Map<String, dynamic>>> fetchPolynomialHistory(String userId) async {
-  final String url = "http://192.168.1.102:8082/api/users/$userId/polynomials"; // Mettre à jour avec votre IP/port correct.
+  final String url = "http://192.168.137.217:8082/api/users/$userId/polynomials"; // Mettre à jour avec votre IP/port correct.
 
   final response = await http.get(Uri.parse(url));
 
@@ -49,6 +49,35 @@ class ApiService {
     return []; // Aucun contenu
   } else {
     throw Exception("Erreur lors du chargement de l'historique");
+  }
+}
+Future<List<dynamic>> getPolynomialsByUser(int userId) async {
+  final String url = "http://192.168.137.217:8082/api/users/$userId/polynomials";
+
+  final response = await http.get(Uri.parse(url), headers: {'Content-Type': 'application/json'});
+
+  if (response.statusCode == 200) {
+    return jsonDecode(response.body); // Retourne la liste des polynômes
+  } else if (response.statusCode == 204) {
+    return []; // Aucun contenu
+  } else {
+    throw Exception("Erreur lors de la récupération des polynômes de l'utilisateur");
+  }
+}
+
+Future<http.Response> plotPolynomial(String expression) async {
+  final String url = "http://10.0.2.2:5110/plot_polynomial";
+
+  final response = await http.post(
+    Uri.parse(url),
+    headers: {'Content-Type': 'application/json'},
+    body: jsonEncode({'expression': expression}),
+  );
+
+  if (response.statusCode == 200) {
+    return response; // Retourne la réponse brute contenant l'image
+  } else {
+    throw Exception(jsonDecode(response.body)['error'] ?? "Erreur inconnue.");
   }
 }
 

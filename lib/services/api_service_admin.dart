@@ -4,7 +4,7 @@ import 'package:http/http.dart' as http;
 class ApiService {
 
 Future<List<dynamic>> getAllCalculators() async {
-  final String url = "http://192.168.1.102:8082/api/calculators"; // URL correcte
+  final String url = "http://192.168.137.217:8082/api/calculators";
 
   final response = await http.get(Uri.parse(url));
   if (response.statusCode == 200) {
@@ -15,7 +15,7 @@ Future<List<dynamic>> getAllCalculators() async {
 }
 
 Future<void> deleteCalculator(int id) async {
-  final String url = "http://192.168.1.102:8082/api/calculators/$id"; // URL correcte
+  final String url = "http://192.168.137.217:8082/api/calculators/$id"; // URL correcte
 
   final response = await http.delete(Uri.parse(url));
   if (response.statusCode != 200) {
@@ -23,7 +23,7 @@ Future<void> deleteCalculator(int id) async {
   }
 }
 Future<void> updateCalculator(int id, String username, String email, String telephone) async {
-  final String url = "http://192.168.1.102:8082/api/calculators/$id"; // URL correcte
+  final String url = "http://192.168.137.217:8082/api/calculators/$id"; // URL correcte
 
   final response = await http.put(
     Uri.parse(url),
